@@ -62,10 +62,26 @@ if prompt := st.chat_input(placeholder="Ask anything..."):
 
         with st.chat_message("assistant"):
             st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-            response = search_agent.run(prompt, callbacks=[st_cb])
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            st.write(response)
+            # Run the search tools first
+            raw_result = search_agent.run(prompt, callbacks=[st_cb])
+
+# Ask the LLM to summarize and clean up redundant info
+            summary_prompt = f"""
+            You are a helpful assistant. Clean up and summarize the following search results clearly and concisely.
+            Remove duplicate or repeated text. Keep only the most relevant details.
+
+            Results:
+            {raw_result}
+            """
+
+            summary = llm.invoke(summary_prompt).content
+
+            st.session_state.messages.append({"role": "assistant", "content": summary})
+            st.write(summary)
+
+            
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
         st.code(traceback.format_exc())
+
